@@ -1,1 +1,1 @@
-export { ComicsList } from './ComicsList'
+export { ComicsListView as ComicsList } from './ComicsList.view'

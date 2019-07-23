@@ -1,64 +1,28 @@
 import React from 'react'
-import { Text } from 'ui/components/Text'
-import styled from 'styled-components'
-import { ComicService } from 'core/services/Comic'
-import { CharacterService } from 'core/services/Character'
-import { Header } from './_components/Header/Header'
-import { List } from './_components/List/List'
-import { Footer } from './_components/Footer/Footer'
 import isUndefined from 'lodash/isUndefined'
 import { Error } from 'ui/components/Error/Error'
-import { color } from 'ui/theme'
 import { Loading } from 'ui/components/Loading'
+import { color } from 'ui/theme'
+import { List } from './_components/List'
 import { Button } from 'ui/components/Button'
-import { UserService } from 'core/services/User'
-import { navigator } from 'core/infrastructure/navigation/navigator'
-import { ThemeService } from 'core/services/Theme'
+import { Text } from 'ui/components/Text'
+import { Header } from './_components/Header'
+import { Footer } from './_components/Footer'
+import styled from 'styled-components'
 import { ThemeContext } from 'ui/views/_components/_context/ThemeContext'
 
-export const ComicsList = () => {
-  const [state, dispatch] = React.useReducer(reducer, initialState)
-  const { firstCharacterFilter, secondCharacterFilter, error, loading, comics } = state
-  const [characters, setCharacters] = React.useState([])
-  const onLogout = async () => {
-    await UserService.logout()
-    navigator.goToLogin()
-  }
+export const ComicsList = ({
+  error,
+  loading,
+  comics,
+  characters,
+  firstCharacterFilter,
+  secondCharacterFilter,
+  dispatch,
+  onLogout,
+  onToggleThemeMode
+}) => {
   const theme = React.useContext(ThemeContext)
-  const onThemeModeToggle = async () => ThemeService.toggleMode(theme.getMode() === 'DAY' ? 'NIGHT' : 'DAY')
-
-  React.useEffect(() => {
-    async function fetchCharacters() {
-      setCharacters(await CharacterService.all())
-    }
-
-    fetchCharacters()
-  }, [])
-
-  React.useEffect(() => {
-    async function fetchComics() {
-      if (isUndefined(firstCharacterFilter) || isUndefined(secondCharacterFilter)) {
-        return
-      }
-
-      try {
-        dispatch({ type: 'FETCH_COMICS' })
-        dispatch({
-          type: 'SHOW_COMICS',
-          comics: await ComicService.common(firstCharacterFilter, secondCharacterFilter)
-        })
-      } catch (error) {
-        if (error.status === 404) {
-          dispatch({ type: 'SHOW_ERROR', error: 'No existe ningún comic para este personaje 😱' })
-        }
-        if (error.status === 500) {
-          dispatch({ type: 'SHOW_ERROR', error: 'Vuelve a intentarlo más tarde... 🤕' })
-        }
-      }
-    }
-
-    fetchComics()
-  }, [firstCharacterFilter, secondCharacterFilter])
 
   const renderList = () => {
     if (!isUndefined(error)) {
@@ -77,7 +41,7 @@ export const ComicsList = () => {
       <Button onClick={onLogout} marginRight="medium">
         Cerrar Sesión
       </Button>
-      <input type="checkbox" onClick={onThemeModeToggle} data-testid="theme-mode-toggle" />
+      <input type="checkbox" onClick={() => onToggleThemeMode(theme)} data-testid="theme-mode-toggle" />
       <Text as="span" marginBottom="small" marginRight="small">
         El tema actual es: {theme.getMode() === 'DAY' ? 'modo día' : 'modo noche'}
       </Text>
@@ -102,54 +66,6 @@ export const ComicsList = () => {
       <Footer comicCount={comics.length} />
     </Layout>
   )
-}
-
-const initialState = {
-  comics: [],
-  firstCharacterFilter: undefined,
-  secondCharacterFilter: undefined,
-  loading: false,
-  error: undefined
-}
-
-function reducer(state, action) {
-  switch (action.type) {
-    case 'SELECT_FIRST_CHARACTER':
-      return {
-        ...state,
-        firstCharacterFilter: action.filter
-      }
-    case 'SELECT_SECOND_CHARACTER':
-      return {
-        ...state,
-        secondCharacterFilter: action.filter
-      }
-    case 'FETCH_COMICS':
-      return {
-        ...state,
-        comics: [],
-        loading: true,
-        error: undefined
-      }
-    case 'SHOW_COMICS':
-      return {
-        ...state,
-        comics: action.comics,
-        loading: false,
-        error: undefined
-      }
-    case 'SHOW_ERROR':
-      return {
-        ...state,
-        comics: [],
-        loading: false,
-        error: action.error
-      }
-    case 'CLEAR':
-      return initialState
-    default:
-      throw new Error(`Unhandled action type: ${action.type}. Please fix it. Thank you.`)
-  }
 }
 
 const Layout = styled.div`
