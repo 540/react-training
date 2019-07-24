@@ -1,8 +1,8 @@
 import { UserService } from 'core/services/User'
 import { navigator } from 'core/infrastructure/navigation/navigator'
-import { CharacterService } from '../../../core/services/Character'
-import { ThemeService } from '../../../core/services/Theme'
-import { ComicService } from '../../../core/services/Comic'
+import { CharacterService } from 'core/services/Character'
+import { ThemeService } from 'core/services/Theme'
+import { ComicService } from 'core/services/Comic'
 import isUndefined from 'lodash/isUndefined'
 
 export const ComicsListPresenter = view => ({
@@ -23,18 +23,17 @@ export const ComicsListPresenter = view => ({
         return
       }
 
-      view.dispatch({ type: 'FETCH_COMICS' })
-      view.dispatch({
-        type: 'SHOW_COMICS',
-        comics: await ComicService.common(firstCharacterFilter, secondCharacterFilter)
-      })
+      view.showLoading()
+      view.showComics(await ComicService.common(firstCharacterFilter, secondCharacterFilter))
     } catch (error) {
       if (error.status === 404) {
-        view.dispatch({ type: 'SHOW_ERROR', error: 'No existe ningún comic para este personaje 😱' })
+        view.showError('No existe ningún comic para este personaje 😱')
       }
       if (error.status === 500) {
-        view.dispatch({ type: 'SHOW_ERROR', error: 'Vuelve a intentarlo más tarde... 🤕' })
+        view.showError('Vuelve a intentarlo más tarde... 🤕')
       }
+    } finally {
+      view.hideLoading()
     }
   }
 })

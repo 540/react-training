@@ -18,9 +18,11 @@ export const ComicsList = ({
   characters,
   firstCharacterFilter,
   secondCharacterFilter,
-  dispatch,
+  onChangeFirstCharacter,
+  onChangeSecondCharacter,
   onLogout,
-  onToggleThemeMode
+  onToggleThemeMode,
+  onClear
 }) => {
   const theme = React.useContext(ThemeContext)
 
@@ -58,9 +60,9 @@ export const ComicsList = ({
         characters={characters}
         firstCharacterFilter={firstCharacterFilter}
         secondCharacterFilter={secondCharacterFilter}
-        onChangeFirstCharacter={filter => dispatch({ type: 'SELECT_FIRST_CHARACTER', filter })}
-        onChangeSecondCharacter={filter => dispatch({ type: 'SELECT_SECOND_CHARACTER', filter })}
-        onClear={() => dispatch({ type: 'CLEAR' })}
+        onChangeFirstCharacter={onChangeFirstCharacter}
+        onChangeSecondCharacter={onChangeSecondCharacter}
+        onClear={onClear}
       />
       {renderList()}
       <Footer comicCount={comics.length} />
