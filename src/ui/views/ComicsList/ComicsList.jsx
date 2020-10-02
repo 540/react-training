@@ -6,12 +6,16 @@ import isUndefined from 'lodash/isUndefined'
 import { Header } from './_components/Header/Header'
 import { List } from './_components/List/List'
 import { Footer } from './_components/Footer/Footer'
+import { Loading } from '../../components/Loading'
+import { Error } from '../../components/Error'
 
 export const ComicsList = () => {
   const [comics, setComics] = React.useState([])
   const [characters, setCharacters] = React.useState([])
   const [firstCharacterFilter, setFirstCharacterFilter] = React.useState(undefined)
   const [secondCharacterFilter, setSecondCharacterFilter] = React.useState(undefined)
+  const [error, setError] = React.useState(undefined)
+  const [loading, setLoading] = React.useState(false)
 
   React.useEffect(() => {
     async function fetchCharacters() {
@@ -23,11 +27,36 @@ export const ComicsList = () => {
 
   React.useEffect(() => {
     async function fetchComics() {
-      setComics(await getCommonComics(firstCharacterFilter, secondCharacterFilter))
+      try {
+        setComics(await getCommonComics(firstCharacterFilter, secondCharacterFilter))
+      } catch (error) {
+        if (error.status === 404) {
+          setError('No existe ningún comic para este personaje 😱')
+        }
+        if (error.status === 500) {
+          setError('Vuelve a intentarlo más tarde... 🤕')
+        }
+      } finally {
+        setLoading(false)
+      }
     }
 
+    setError(undefined)
+    setLoading(true)
     fetchComics()
   }, [firstCharacterFilter, secondCharacterFilter])
+
+  const renderList = () => {
+    if (!isUndefined(error)) {
+      return <Error>{error}</Error>
+    }
+
+    if (loading) {
+      return <Loading />
+    }
+
+    return <List comics={comics} />
+  }
 
   return (
     <Layout>
@@ -52,7 +81,7 @@ export const ComicsList = () => {
           setSecondCharacterFilter(undefined)
         }}
       />
-      <List comics={comics} />
+      {renderList()}
       <Footer comicCount={comics.length} />
     </Layout>
   )
