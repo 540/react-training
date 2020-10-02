@@ -10,12 +10,9 @@ import { Loading } from '../../components/Loading'
 import { Error } from '../../components/Error'
 
 export const ComicsList = () => {
-  const [comics, setComics] = React.useState([])
+  const [state, dispatch] = React.useReducer(reducer, initialState, undefined)
+  const { firstCharacterFilter, secondCharacterFilter, error, loading, comics } = state
   const [characters, setCharacters] = React.useState([])
-  const [firstCharacterFilter, setFirstCharacterFilter] = React.useState(undefined)
-  const [secondCharacterFilter, setSecondCharacterFilter] = React.useState(undefined)
-  const [error, setError] = React.useState(undefined)
-  const [loading, setLoading] = React.useState(false)
 
   React.useEffect(() => {
     async function fetchCharacters() {
@@ -28,21 +25,21 @@ export const ComicsList = () => {
   React.useEffect(() => {
     async function fetchComics() {
       try {
-        setComics(await getCommonComics(firstCharacterFilter, secondCharacterFilter))
+        dispatch({ type: 'FETCH_COMICS' })
+        dispatch({
+          type: 'SHOW_COMICS',
+          comics: await getCommonComics(firstCharacterFilter, secondCharacterFilter)
+        })
       } catch (error) {
         if (error.status === 404) {
-          setError('No existe ningún comic para este personaje 😱')
+          dispatch({ type: 'SHOW_ERROR', error: 'No existe ningún comic para este personaje 😱' })
         }
         if (error.status === 500) {
-          setError('Vuelve a intentarlo más tarde... 🤕')
+          dispatch({ type: 'SHOW_ERROR', error: 'Vuelve a intentarlo más tarde... 🤕' })
         }
-      } finally {
-        setLoading(false)
       }
     }
 
-    setError(undefined)
-    setLoading(true)
     fetchComics()
   }, [firstCharacterFilter, secondCharacterFilter])
 
@@ -73,18 +70,61 @@ export const ComicsList = () => {
         characters={characters}
         firstCharacterFilter={firstCharacterFilter}
         secondCharacterFilter={secondCharacterFilter}
-        onChangeFirstCharacter={setFirstCharacterFilter}
-        onChangeSecondCharacter={setSecondCharacterFilter}
-        onClear={() => {
-          setComics([])
-          setFirstCharacterFilter(undefined)
-          setSecondCharacterFilter(undefined)
-        }}
+        onChangeFirstCharacter={filter => dispatch({ type: 'SELECT_FIRST_CHARACTER', filter })}
+        onChangeSecondCharacter={filter => dispatch({ type: 'SELECT_SECOND_CHARACTER', filter })}
+        onClear={() => dispatch({ type: 'CLEAR' })}
       />
       {renderList()}
       <Footer comicCount={comics.length} />
     </Layout>
   )
+}
+const initialState = {
+  comics: [],
+  firstCharacterFilter: undefined,
+  secondCharacterFilter: undefined,
+  loading: true,
+  error: undefined
+}
+
+function reducer(state, action) {
+  switch (action.type) {
+    case 'SELECT_FIRST_CHARACTER':
+      return {
+        ...state,
+        firstCharacterFilter: action.filter
+      }
+    case 'SELECT_SECOND_CHARACTER':
+      return {
+        ...state,
+        secondCharacterFilter: action.filter
+      }
+    case 'FETCH_COMICS':
+      return {
+        ...state,
+        comics: [],
+        loading: true,
+        error: undefined
+      }
+    case 'SHOW_COMICS':
+      return {
+        ...state,
+        comics: action.comics,
+        loading: false,
+        error: undefined
+      }
+    case 'SHOW_ERROR':
+      return {
+        ...state,
+        comics: [],
+        loading: false,
+        error: action.error
+      }
+    case 'CLEAR':
+      return initialState
+    default:
+      throw new Error(`Unhandled action type: ${action.type}. Please fix it. Thank you.`)
+  }
 }
 
 const getAllCharacters = async () => await api.characters()
