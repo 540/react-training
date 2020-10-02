@@ -1,11 +1,11 @@
 import React from 'react'
 import { Text } from 'ui/components/Text'
 import styled from 'styled-components'
-import { sizes } from 'ui/theme'
-import { Button } from 'ui/components/Button'
 import { api } from 'api'
-import { Select } from 'ui/components/Select'
 import isUndefined from 'lodash/isUndefined'
+import { Header } from './_components/Header/Header'
+import { List } from './_components/List/List'
+import { Footer } from './_components/Footer/Footer'
 
 export const ComicsList = () => {
   const [comics, setComics] = React.useState([])
@@ -15,7 +15,7 @@ export const ComicsList = () => {
 
   React.useEffect(() => {
     async function fetchCharacters() {
-      setCharacters(await api.characters())
+      setCharacters(await getAllCharacters())
     }
 
     fetchCharacters()
@@ -23,19 +23,7 @@ export const ComicsList = () => {
 
   React.useEffect(() => {
     async function fetchComics() {
-      if (isUndefined(firstCharacterFilter) || isUndefined(secondCharacterFilter)) {
-        return
-      }
-
-      const [firstCharacterComics, secondCharacterComics] = await Promise.all([
-        api.comics(firstCharacterFilter),
-        api.comics(secondCharacterFilter)
-      ])
-      const commonComics = firstCharacterComics.filter(comic1 =>
-        secondCharacterComics.some(comic2 => comic1.id === comic2.id)
-      )
-
-      setComics(commonComics)
+      setComics(await getCommonComics(firstCharacterFilter, secondCharacterFilter))
     }
 
     fetchComics()
@@ -70,48 +58,19 @@ export const ComicsList = () => {
   )
 }
 
-const Header = ({
-  characters,
-  firstCharacterFilter,
-  secondCharacterFilter,
-  onClear,
-  onChangeFirstCharacter,
-  onChangeSecondCharacter
-}) => {
-  const options = characters.map(character => ({ value: character.id, label: character.name }))
+const getAllCharacters = async () => await api.characters()
 
-  return (
-    <>
-      <CharacterSelect
-        options={options}
-        value={firstCharacterFilter}
-        onSelect={event => onChangeFirstCharacter(event.target.value)}
-      />
-      <CharacterSelect
-        options={options}
-        value={secondCharacterFilter}
-        onSelect={event => onChangeSecondCharacter(event.target.value)}
-      />
-      <Button onClick={onClear}>Limpiar búsqueda</Button>
-    </>
-  )
+const getCommonComics = async (firstCharacterFilter, secondCharacterFilter) => {
+  if (isUndefined(firstCharacterFilter) || isUndefined(secondCharacterFilter)) {
+    return []
+  }
+
+  const [firstCharacterComics, secondCharacterComics] = await Promise.all([
+    api.comics(firstCharacterFilter),
+    api.comics(secondCharacterFilter)
+  ])
+  return firstCharacterComics.filter(comic1 => secondCharacterComics.some(comic2 => comic1.id === comic2.id))
 }
-
-const List = ({ comics }) =>
-  comics.map(comic => (
-    <Comic key={comic.id}>
-      <Text as="p" weight="bold">
-        {comic.title}
-      </Text>
-      <Text as="p">{comic.characters.join(', ')}</Text>
-    </Comic>
-  ))
-
-const Footer = ({ comicCount }) => (
-  <div>
-    <Text>Elementos en la lista: {comicCount}</Text>
-  </div>
-)
 
 const Layout = styled.div`
   max-width: 1140px;
@@ -120,13 +79,4 @@ const Layout = styled.div`
   padding-right: 15px;
   padding-left: 15px;
   width: 100%;
-`
-
-const CharacterSelect = styled(Select)`
-  margin-bottom: ${sizes.base};
-  margin-right: ${sizes.large};
-`
-
-const Comic = styled.div`
-  margin-bottom: ${sizes.base};
 `
